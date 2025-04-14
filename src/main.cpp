@@ -4,8 +4,10 @@
   #include <Wire.h>
   #include <Adafruit_GFX.h>
   #include <Adafruit_SSD1306.h>
+  #include <Servo.h>
 
-
+  
+  Servo myServo;
   ESP8266WiFiMulti wifiMulti;
   ESP8266WebServer server(80);
 
@@ -36,6 +38,8 @@
   #define OLED_SCL 10
 
   Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+  #define SERVO_PIN D7
 
   // Function to connect to WiFi
   void connectToWiFi() {
@@ -110,36 +114,36 @@
 
 
   String correctPassword = "1234";
-  void handlePassword() {
 
-    if (server.hasArg("password")) {
-      String receivedPassword = server.arg("password");
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.setTextSize(2);
-      display.setTextColor(WHITE);
-      display.print("Pwd: ");
-      display.println(receivedPassword);
+void handlePassword() {
+  if (server.hasArg("password")) {
+    String receivedPassword = server.arg("password");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.print("Pwd: ");
+    display.println(receivedPassword);
+    display.display();
+
+    if (receivedPassword == correctPassword) {
+      display.setCursor(0, 30);
+      display.print("Access OK");
       display.display();
-  
-      if (receivedPassword == correctPassword) {
-        display.setCursor(0, 30);
-        display.print("Access OK");
-        display.display();
-        Serial.println("Correct Password!");
-        // Add logic to unlock door (servo, etc.)
-      } else {
-        display.setCursor(0, 30);
-        display.print("Access Denied");
-        display.display();
-        Serial.println("Wrong Password!");
-      }
-      server.send(200, "text/plain", "Password received");
+      Serial.println("Correct Password!");
+      
     } else {
-      server.send(400, "text/plain", "Missing password");
+      display.setCursor(0, 30);
+      display.print("Access Denied");
+      display.display();
+      Serial.println("Wrong Password!");
     }
+    server.send(200, "text/plain", "Password received");
+  } else {
+    server.send(400, "text/plain", "Missing password");
   }
-  
+}
+
 
   void handleRoot() {
     server.send(200, "text/plain", "ESP8266 Home Automation");
@@ -174,7 +178,10 @@
     pinMode(PIR_SENSOR_PIN, INPUT);
     pinMode(LED_ROOM_PIN, OUTPUT);
     digitalWrite(LED_ROOM_PIN, LOW);
-  
+    
+    myServo.attach(SERVO_PIN);
+    myServo.write(0); // Ensure it's closed initially
+
     // Initialize OLED display
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
     display.clearDisplay();
@@ -200,4 +207,3 @@
     server.handleClient();
 
   }
-
