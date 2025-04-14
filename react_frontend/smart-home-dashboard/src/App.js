@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 
+
+
 function App() {
   const [data, setData] = useState(null);
 
@@ -30,40 +32,8 @@ function App() {
       ) : (
         <p>Loading sensor data...</p>
       )}
-
-      <DoorControl />
-      
     </div>
   );
-
-  function DoorControl() {
-    const openDoor = () => {
-      fetch("http://192.168.214.68/open-door") // replace with ESP IP
-        .then((res) => res.text())
-        .then((msg) => alert(msg))
-        .catch((err) => console.error("Error opening door:", err));
-    };
-  
-    return (
-      <div style={{ marginTop: "20px" }}>
-        <button
-          onClick={openDoor}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            fontSize: "16px",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-          }}
-        >
-          🚪 Open Door
-        </button>
-      </div>
-    );
-  }
-  
 }
 
 export default App;
