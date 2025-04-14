@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
-
-
 
 function App() {
   const [data, setData] = useState(null);
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const fetchStatus = () => {
@@ -15,10 +14,20 @@ function App() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000); // update every 3 seconds
-
+    const interval = setInterval(fetchStatus, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const sendPassword = () => {
+    fetch("http://192.168.214.68/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `password=${encodeURIComponent(password)}`,
+    })
+      .then((res) => res.text())
+      .then((text) => alert(text))
+      .catch((err) => alert("Failed to send password"));
+  };
 
   return (
     <div className="App">
@@ -32,6 +41,15 @@ function App() {
       ) : (
         <p>Loading sensor data...</p>
       )}
+      <div>
+        <h2>🔐 Enter Password to Unlock Door</h2>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={sendPassword}>Submit</button>
+      </div>
     </div>
   );
 }
