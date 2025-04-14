@@ -41,6 +41,11 @@
 
   #define SERVO_PIN D7
 
+  #define LDR_PIN A0
+  #define FENCE_LED_PIN D0
+  #define LDR_THRESHOLD 300  // Adjust based on ambient lighting
+
+
   // Function to connect to WiFi
   void connectToWiFi() {
     Serial.println("Connecting to WiFi...");
@@ -91,12 +96,12 @@
   void detectGas() {
     int gasLevel = readSmokeSensor();
     
-    if (gasLevel > GAS_THRESHOLD) {
+    if (gasLevel < GAS_THRESHOLD) {
       digitalWrite(BUZZER_PIN, HIGH); // Activate buzzer
-      Serial.println("Gas or Smoke Detected! Warning!");
+      Serial.println("Air Quality Normal.");
     } else {
       digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
-      Serial.println("Air Quality Normal.");
+      Serial.println("Gas or Smoke Detected! Warning!");
     }
   }
 
@@ -111,6 +116,19 @@
       digitalWrite(LED_ROOM_PIN, LOW);
     }
   }
+
+  void controlFenceLight() {
+    int ldrValue = analogRead(LDR_PIN);
+    Serial.print("LDR Value: ");
+    Serial.println(ldrValue);
+  
+    if (ldrValue > LDR_THRESHOLD) {
+      digitalWrite(FENCE_LED_PIN, HIGH); // Turn on fence light
+    } else {
+      digitalWrite(FENCE_LED_PIN, LOW);  // Turn off
+    }
+  }
+  
 
 
   String correctPassword = "1234";
@@ -182,6 +200,10 @@ void handlePassword() {
     myServo.attach(SERVO_PIN);
     myServo.write(0); // Ensure it's closed initially
 
+    pinMode(FENCE_LED_PIN, OUTPUT);
+    digitalWrite(FENCE_LED_PIN, LOW);
+
+
     // Initialize OLED display
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
     display.clearDisplay();
@@ -203,7 +225,9 @@ void handlePassword() {
     detectIntruder();
     detectGas();
     detectMotionWithIR();
-    delay(30);
+    
     server.handleClient();
+    controlFenceLight();
+    delay(300);
 
   }
