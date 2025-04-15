@@ -20,7 +20,7 @@
 
 
   //Gas sensor ke pins
-  #define MQ2_PIN A0
+  // #define MQ2_PIN A0
   #define GAS_THRESHOLD 850
   #define BUZZER_PIN D4
 
@@ -41,9 +41,16 @@
 
   #define SERVO_PIN D7
 
+  //ldr ke pins + led
   #define LDR_PIN A0
   #define FENCE_LED_PIN D0
   #define LDR_THRESHOLD 300  // Adjust based on ambient lighting
+
+  //raindrop ke pins
+  #define RAIN_SENSOR_PIN D3
+  #define PUMP_MOTOR_PIN D8
+  #define RAIN_THRESHOLD 910  // Adjust this based on your sensor readings
+
 
 
   // Function to connect to WiFi
@@ -85,25 +92,40 @@
     }
   }
 
-  int readSmokeSensor() {
-    int sensorValue = analogRead(MQ2_PIN);
-    // Serial.print("MQ-2 Sensor Value: ");
-    // Serial.println(sensorValue);
-    return sensorValue;
-  }
+  // int readSmokeSensor() {
+  //   int sensorValue = analogRead(MQ2_PIN);
+  //   // Serial.print("MQ-2 Sensor Value: ");
+  //   // Serial.println(sensorValue);
+  //   return sensorValue;
+  // }
 
-  // Function to detect gas
-  void detectGas() {
-    int gasLevel = readSmokeSensor();
+  // // Function to detect gas
+  // void detectGas() {
+  //   int gasLevel = readSmokeSensor();
     
-    if (gasLevel < GAS_THRESHOLD) {
-      digitalWrite(BUZZER_PIN, HIGH); // Activate buzzer
-      Serial.println("Air Quality Normal.");
+  //   if (gasLevel < GAS_THRESHOLD) {
+  //     digitalWrite(BUZZER_PIN, HIGH); // Activate buzzer
+  //     Serial.println("Air Quality Normal.");
+  //   } else {
+  //     digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
+  //     Serial.println("Gas or Smoke Detected! Warning!");
+  //   }
+  // }
+
+  void controlPumpWithRainSensor() {
+    int rainValue = analogRead(RAIN_SENSOR_PIN);
+    Serial.print("Rain Sensor Value: ");
+    Serial.println(rainValue);
+  
+    if (rainValue < RAIN_THRESHOLD) {
+      digitalWrite(PUMP_MOTOR_PIN, LOW);  // Turn off pump
+      Serial.println("Less Water. Pump ON.");
     } else {
-      digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
-      Serial.println("Gas or Smoke Detected! Warning!");
+      digitalWrite(PUMP_MOTOR_PIN, HIGH); // Turn on pump
+      Serial.println("Water detected. Pump OFF.");
     }
   }
+  
 
   void detectMotionWithIR() {
     int motionDetected = digitalRead(PIR_SENSOR_PIN);
@@ -149,6 +171,10 @@ void handlePassword() {
       display.print("Access OK");
       display.display();
       Serial.println("Correct Password!");
+      myServo.write(90);
+      delay(1000);
+      myServo.write(00);
+    
       
     } else {
       display.setCursor(0, 30);
@@ -170,12 +196,12 @@ void handlePassword() {
   // Endpoint: /status
   void handleStatus() {
     int distance = readUltrasonicSensor();
-    int gasLevel = readSmokeSensor();
+    // int gasLevel = readSmokeSensor();
     int motionDetected = digitalRead(PIR_SENSOR_PIN);
 
     String json = "{";
     json += "\"distance\":" + String(distance) + ",";
-    json += "\"gasLevel\":" + String(gasLevel) + ",";
+    // json += "\"gasLevel\":" + String(gasLevel) + ",";
     json += "\"motionDetected\":" + String(motionDetected);
     json += "}";
     server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -200,8 +226,10 @@ void handlePassword() {
     myServo.attach(SERVO_PIN);
     myServo.write(0); // Ensure it's closed initially
 
-    pinMode(FENCE_LED_PIN, OUTPUT);
-    digitalWrite(FENCE_LED_PIN, LOW);
+    // pinMode(FENCE_LED_PIN, OUTPUT);
+    // digitalWrite(FENCE_LED_PIN, LOW);
+    pinMode(PUMP_MOTOR_PIN, OUTPUT);
+    digitalWrite(PUMP_MOTOR_PIN, LOW);  // Initially off
 
 
     // Initialize OLED display
@@ -223,11 +251,11 @@ void handlePassword() {
   void loop() {
     checkWiFiStatus();
     detectIntruder();
-    detectGas();
+    // detectGas();
     detectMotionWithIR();
-    
+    controlPumpWithRainSensor();
+    // controlFenceLight();
     server.handleClient();
-    controlFenceLight();
     delay(300);
 
   }

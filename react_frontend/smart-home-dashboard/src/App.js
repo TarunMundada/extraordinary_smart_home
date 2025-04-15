@@ -50,6 +50,14 @@ function App() {
         />
         <button onClick={sendPassword}>Submit</button>
       </div>
+      <h2>📷 Live Surveillance Feed</h2>
+      <div style={{ border: "2px solid #555", width: "80%", maxWidth: 600 }}>
+        <img
+          src="http://192.168.214.11:8080/video"
+          alt="Live Stream"
+          style={{ width: "100%" }}
+        />
+      </div>
     </div>
   );
 }
