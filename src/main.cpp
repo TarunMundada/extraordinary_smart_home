@@ -20,8 +20,8 @@
 
 
   //Gas sensor ke pins
-  // #define MQ2_PIN A0
-  #define GAS_THRESHOLD 850
+  #define MQ2_PIN A0
+  #define GAS_THRESHOLD 960
   #define BUZZER_PIN D4
 
   //Ir sensor ke pins + repective led
@@ -42,14 +42,14 @@
   #define SERVO_PIN D7
 
   //ldr ke pins + led
-  #define LDR_PIN A0
-  #define FENCE_LED_PIN D0
-  #define LDR_THRESHOLD 300  // Adjust based on ambient lighting
+  // #define LDR_PIN A0
+  // #define FENCE_LED_PIN D0
+  // #define LDR_THRESHOLD 300  // Adjust based on ambient lighting
 
   //raindrop ke pins
   #define RAIN_SENSOR_PIN D3
   #define PUMP_MOTOR_PIN D8
-  #define RAIN_THRESHOLD 910  // Adjust this based on your sensor readings
+  #define RAIN_THRESHOLD 715  // Adjust this based on your sensor readings
 
 
 
@@ -72,56 +72,37 @@
     // Serial.println(WiFi.localIP());
   }
 
-  // Function to read the ultrasonic sensor and return the distance
-  unsigned int readUltrasonicSensor() {
-    return sonar.ping_cm();
+
+  int readSmokeSensor() {
+    int sensorValue = analogRead(MQ2_PIN);
+    // Serial.print("MQ-2 Sensor Value: ");
+    // Serial.println(sensorValue);
+    return sensorValue;
   }
 
-  // Function to detect intruders based on sensor reading
-  void detectIntruder() {
-    unsigned int distance = readUltrasonicSensor();
+  // Function to detect gas
+  void detectGas() {
+    int gasLevel = readSmokeSensor();
     
-    // Serial.print(distance);
-    // Serial.println(" cm");
-
-    // Check for intruders
-    if (distance > 0 && distance < 200) { 
-      // Serial.println("Intruder Detected!");
+    if (gasLevel < GAS_THRESHOLD) {
+      digitalWrite(BUZZER_PIN, HIGH); // Activate buzzer
+      Serial.println("Air Quality Normal.");
     } else {
-      // Serial.println("No Intruder.");
+      digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
+      Serial.println("Gas or Smoke Detected! Warning!");
     }
   }
 
-  // int readSmokeSensor() {
-  //   int sensorValue = analogRead(MQ2_PIN);
-  //   // Serial.print("MQ-2 Sensor Value: ");
-  //   // Serial.println(sensorValue);
-  //   return sensorValue;
-  // }
-
-  // // Function to detect gas
-  // void detectGas() {
-  //   int gasLevel = readSmokeSensor();
-    
-  //   if (gasLevel < GAS_THRESHOLD) {
-  //     digitalWrite(BUZZER_PIN, HIGH); // Activate buzzer
-  //     Serial.println("Air Quality Normal.");
-  //   } else {
-  //     digitalWrite(BUZZER_PIN, LOW); // Turn off buzzer
-  //     Serial.println("Gas or Smoke Detected! Warning!");
-  //   }
-  // }
-
   void controlPumpWithRainSensor() {
-    int rainValue = analogRead(RAIN_SENSOR_PIN);
+    int rainValue = digitalRead(RAIN_SENSOR_PIN);
     Serial.print("Rain Sensor Value: ");
     Serial.println(rainValue);
   
-    if (rainValue < RAIN_THRESHOLD) {
-      digitalWrite(PUMP_MOTOR_PIN, LOW);  // Turn off pump
+    if (rainValue == 1) {
+      digitalWrite(PUMP_MOTOR_PIN, HIGH);  // Turn off pump
       Serial.println("Less Water. Pump ON.");
     } else {
-      digitalWrite(PUMP_MOTOR_PIN, HIGH); // Turn on pump
+      digitalWrite(PUMP_MOTOR_PIN, LOW); // Turn on pump
       Serial.println("Water detected. Pump OFF.");
     }
   }
@@ -132,6 +113,7 @@
     
     if (motionDetected == LOW) {
       digitalWrite(LED_ROOM_PIN, HIGH);
+      delay(2000);
       // Serial.println("Motion Detected: Person Entered Room");
     } else {
       // Serial.println("Maa chuda bkl");
@@ -139,17 +121,17 @@
     }
   }
 
-  void controlFenceLight() {
-    int ldrValue = analogRead(LDR_PIN);
-    Serial.print("LDR Value: ");
-    Serial.println(ldrValue);
+  // void controlFenceLight() {
+  //   int ldrValue = analogRead(LDR_PIN);
+  //   Serial.print("LDR Value: ");
+  //   Serial.println(ldrValue);
   
-    if (ldrValue > LDR_THRESHOLD) {
-      digitalWrite(FENCE_LED_PIN, HIGH); // Turn on fence light
-    } else {
-      digitalWrite(FENCE_LED_PIN, LOW);  // Turn off
-    }
-  }
+  //   if (ldrValue > LDR_THRESHOLD) {
+  //     digitalWrite(FENCE_LED_PIN, HIGH); // Turn on fence light
+  //   } else {
+  //     digitalWrite(FENCE_LED_PIN, LOW);  // Turn off
+  //   }
+  // }
   
 
 
@@ -195,19 +177,23 @@ void handlePassword() {
 
   // Endpoint: /status
   void handleStatus() {
-    int distance = readUltrasonicSensor();
-    // int gasLevel = readSmokeSensor();
+    int gasLevel = readSmokeSensor();
     int motionDetected = digitalRead(PIR_SENSOR_PIN);
-
+    // int ldrValue = analogRead(LDR_PIN);
+    int rainValue = digitalRead(RAIN_SENSOR_PIN);
+  
     String json = "{";
-    json += "\"distance\":" + String(distance) + ",";
-    // json += "\"gasLevel\":" + String(gasLevel) + ",";
-    json += "\"motionDetected\":" + String(motionDetected);
+    // json += "\"distance\":" + String(distance) + ",";
+    json += "\"gasLevel\":" + String(gasLevel) + ",";
+    json += "\"motionDetected\":" + String(motionDetected) + ",";
+    // json += "\"ldrValue\":" + String(ldrValue) + ",";
+    json += "\"rainValue\":" + String(rainValue);
     json += "}";
+  
     server.sendHeader("Access-Control-Allow-Origin", "*");
-
     server.send(200, "application/json", json);
   }
+  
 
   void setup() {
     Serial.begin(115200);
@@ -250,8 +236,7 @@ void handlePassword() {
   // Loop Function
   void loop() {
     checkWiFiStatus();
-    detectIntruder();
-    // detectGas();
+    detectGas();
     detectMotionWithIR();
     controlPumpWithRainSensor();
     // controlFenceLight();
@@ -259,3 +244,5 @@ void handlePassword() {
     delay(300);
 
   }
+
+
